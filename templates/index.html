@@ -23,12 +23,20 @@
     display:flex; justify-content:space-between; align-items:center;
     background:rgba(15,23,42,.8); border:1px solid rgba(255,255,255,.1);
     padding:12px 20px; border-radius:18px; margin-bottom:16px;
-    backdrop-filter:blur(10px);
+    backdrop-filter:blur(10px); flex-wrap:wrap; gap:10px;
   }
-  .badge-container{display:flex; gap:16px}
+  .badge-container{display:flex; gap:16px; align-items:center}
   .badge{font-size:16px; font-weight:bold; display:flex; align-items:center; gap:6px}
   .badge.coins{color:#facc15}
   .badge.level{color:#38bdf8}
+
+  .player-input-box{
+    display:flex; align-items:center; gap:8px;
+  }
+  .player-input-box input{
+    background:rgba(2,6,23,.8); border:1px solid rgba(255,255,255,.2);
+    color:#fff; padding:6px 12px; border-radius:8px; font-weight:bold;
+  }
 
   .card{
     background:rgba(15,23,42,.78);
@@ -113,6 +121,7 @@
   .epic{color:#a855f7; text-shadow:0 0 22px rgba(168,85,247,.65)}
   .legendary{color:#f97316; text-shadow:0 0 24px rgba(249,115,22,.7)}
   .mythic{color:#ef4444; text-shadow:0 0 28px rgba(239,68,68,.8)}
+  .secret{color:#10b981; text-shadow:0 0 30px rgba(16,185,129,1)}
 
   .btn-group{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px}
   button{
@@ -142,10 +151,11 @@
   }
   .stat b{display:block;font-size:18px;margin-top:3px}
   
-  .history{margin-top:18px}
-  .history h3{margin:0 0 10px}
-  .history-list{display:grid;gap:8px;max-height:140px;overflow:auto}
-  .history-item{
+  .sections{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:18px}
+  .history, .leaderboard{margin-top:0}
+  .history h3, .leaderboard h3{margin:0 0 10px}
+  .history-list, .leaderboard-list{display:grid;gap:8px;max-height:160px;overflow:auto}
+  .history-item, .leaderboard-item{
     display:flex;justify-content:space-between;align-items:center;
     padding:10px 12px;border-radius:11px;background:rgba(2,6,23,.5);
     border:1px solid rgba(255,255,255,.05)
@@ -156,6 +166,7 @@
   .tag.epic{background:rgba(168,85,247,.15); color:#a855f7}
   .tag.legendary{background:rgba(249,115,22,.15); color:#f97316}
   .tag.mythic{background:rgba(239,68,68,.15); color:#ef4444}
+  .tag.secret{background:rgba(16,185,129,.2); color:#10b981}
 
   .game-modal{
     display:none;position:fixed;inset:0;
@@ -181,6 +192,7 @@
 
   @media(max-width:700px){
     .stats{grid-template-columns:repeat(3,1fr)}
+    .sections{grid-template-columns:1fr}
     .btn-group{grid-template-columns:1fr}
     .card{padding:16px}
     .rng{height:180px}
@@ -194,6 +206,10 @@
   <p class="sub">Gaste pontos para rolar novos apelidos e enfrente pedras espaciais!</p>
 
   <div class="top-bar">
+    <div class="player-input-box">
+      <label for="playerName">👤 Player:</label>
+      <input type="text" id="playerName" value="Player1" maxlength="12">
+    </div>
     <div class="badge-container">
       <div class="badge coins">🪙 <span id="userCoins">100</span> Pontos</div>
       <div class="badge level">⭐ Nível <span id="userLevel">1</span></div>
@@ -227,17 +243,23 @@
       <div class="stat" style="color:#a855f7">Épico<b>15%</b>
         <div class="tooltip">🔫 Tiro Triplo | ⚡ Cadência: 1.7x | ❤️ Vida: 5</div>
       </div>
-      <div class="stat" style="color:#f97316">Lendário<b>8%</b>
+      <div class="stat" style="color:#f97316">Lendário<b>5%</b>
         <div class="tooltip">🔫 Tiro Quádruplo + Escudo | ⚡ Cadência: 2.2x | ❤️ Vida: 7</div>
       </div>
-      <div class="stat" style="color:#ef4444">Mítico<b>2%</b>
+      <div class="stat" style="color:#ef4444">Mítico<b>1%</b>
         <div class="tooltip">🔫 Tiro Espalhado x5 + Super Escudo | ⚡ Cadência: 3.5x | ❤️ Vida: 10</div>
       </div>
     </div>
 
-    <div class="history">
-      <h3>📜 Histórico</h3>
-      <div class="history-list" id="history"></div>
+    <div class="sections">
+      <div class="history">
+        <h3>📜 Histórico</h3>
+        <div class="history-list" id="history"></div>
+      </div>
+      <div class="leaderboard">
+        <h3>🏆 Leaderboard</h3>
+        <div class="leaderboard-list" id="leaderboard"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -257,20 +279,26 @@
 
 <script>
 const data = [
-  {name:"nicolas", rarity:"Comum"},
-  {name:"henrico", rarity:"Comum"},
-  {name:"kenedy", rarity:"Comum"},
+  {name:"Henrico", rarity:"Comum"},
+  {name:"Nicolas", rarity:"Comum"},
+  {name:"Pedro", rarity:"Comum"},
 
-  {name:"Jadrin", rarity:"Raro"},
-  {name:"bruno", rarity:"Raro"},
+  {name:"Bruno", rarity:"Raro"},
+  {name:"Presidente", rarity:"Raro"},
+  {name:"Wlissys", rarity:"Raro"},
 
-  {name:"lipao", rarity:"Épico"},
-  {name:"pietro", rarity:"Épico"},
+  {name:"Jadrian", rarity:"Épico"},
+  {name:"Guilherme", rarity:"Épico"},
+  {name:"Thales", rarity:"Épico"},
 
-  {name:"oswaldo", rarity:"Lendário"},
-  {name:"leonardo", rarity:"Lendário"},
+  {name:"Lipão", rarity:"Lendário"},
+  {name:"Leonardo", rarity:"Lendário"},
+  {name:"Oswaldo", rarity:"Lendário"},
 
-  {name:"RL", rarity:"Mítico"}
+  {name:"RL", rarity:"Mítico"},
+  {name:"Matheuzinho", rarity:"Mítico"},
+
+  {name:"POLO", rarity:"Secreto"}
 ];
 
 const rarityStats = {
@@ -278,7 +306,8 @@ const rarityStats = {
   "Raro":     { color: "#60a5fa", shootDelay: 260, bullets: 2, hp: 4,  type: "Duplo" },
   "Épico":    { color: "#a855f7", shootDelay: 190, bullets: 3, hp: 5,  type: "Triplo" },
   "Lendário": { color: "#f97316", shootDelay: 130, bullets: 4, hp: 7,  type: "Quádruplo" },
-  "Mítico":   { color: "#ef4444", shootDelay: 70,  bullets: 5, hp: 10, type: "Espalhado x5" }
+  "Mítico":   { color: "#ef4444", shootDelay: 70,  bullets: 5, hp: 10, type: "Espalhado x5" },
+  "Secreto":  { color: "#10b981", shootDelay: 40,  bullets: 5, hp: 15, type: "Laser Infinito Secreto" }
 };
 
 let coins = 100;
@@ -292,6 +321,8 @@ const rollBtn = document.getElementById("roll");
 const playBtn = document.getElementById("play");
 const rngBox = document.getElementById("rngBox");
 const historyEl = document.getElementById("history");
+const leaderboardEl = document.getElementById("leaderboard");
+const playerNameInput = document.getElementById("playerName");
 
 const userCoinsEl = document.getElementById("userCoins");
 const userLevelEl = document.getElementById("userLevel");
@@ -299,6 +330,11 @@ const userXpEl = document.getElementById("userXp");
 
 let rolling = false;
 let history = [];
+let leaderboard = [
+  {name: "RL", level: 12, coins: 2500},
+  {name: "Oswaldo", level: 8, coins: 1400},
+  {name: "Leonardo", level: 5, coins: 850}
+];
 let currentResult = null;
 
 function updateUI(){
@@ -309,6 +345,28 @@ function updateUI(){
   if(!rolling){
     rollBtn.disabled = coins < ROLL_COST;
   }
+  updateLeaderboard();
+}
+
+function updateLeaderboard(){
+  const pName = playerNameInput.value.trim() || "Player1";
+  
+  let existing = leaderboard.find(p => p.name === pName);
+  if(existing){
+    existing.level = level;
+    existing.coins = coins;
+  } else {
+    leaderboard.push({name: pName, level: level, coins: coins});
+  }
+
+  leaderboard.sort((a,b) => b.level !== a.level ? b.level - a.level : b.coins - a.coins);
+
+  leaderboardEl.innerHTML = leaderboard.slice(0, 5).map((x, i) => `
+    <div class="leaderboard-item">
+      <span><b>#${i+1}</b> ${x.name}</span>
+      <span style="color:#38bdf8; font-weight:bold">Nvl ${x.level} (${x.coins} pts)</span>
+    </div>
+  `).join("");
 }
 
 function addXp(amount){
@@ -328,15 +386,17 @@ function className(r){
   if(r==="Épico") return "epic";
   if(r==="Lendário") return "legendary";
   if(r==="Mítico") return "mythic";
+  if(r==="Secreto") return "secret";
   return "common";
 }
 
 function rarityRoll(){
   const n = Math.random() * 100;
-  if(n < 50) return "Comum";
-  if(n < 75) return "Raro";
-  if(n < 90) return "Épico";
-  if(n < 98) return "Lendário";
+  if(n < 0.01) return "Secreto";
+  if(n < 50.01) return "Comum";
+  if(n < 75.01) return "Raro";
+  if(n < 90.01) return "Épico";
+  if(n < 95.01) return "Lendário";
   return "Mítico";
 }
 
@@ -345,7 +405,10 @@ function pick(rarity){
   return p[Math.floor(Math.random() * p.length)];
 }
 
-function randomAny(){ return data[Math.floor(Math.random() * data.length)]; }
+function randomAny(){ 
+  const visibleData = data.filter(x => x.rarity !== "Secreto");
+  return visibleData[Math.floor(Math.random() * visibleData.length)]; 
+}
 
 function addHistory(item){
   history.unshift(item);
@@ -451,7 +514,8 @@ function startGame(){
   modal.classList.add("active");
   currentStats = rarityStats[currentResult.rarity];
   
-  pInfo.textContent = currentResult.name;
+  const pName = playerNameInput.value.trim() || "Player";
+  pInfo.textContent = `${pName} (${currentResult.name})`;
   pInfo.style.color = currentStats.color;
   
   sessionCoins = 0;
@@ -622,7 +686,7 @@ function loop(now){
       currentHp--;
       hpEl.textContent = currentHp;
       if(currentHp <= 0){
-        alert(`Game Over! ${currentResult.name} coletou +${sessionCoins} Pontos nesta partida!`);
+        alert(`Game Over! Coletou +${sessionCoins} Pontos nesta partida!`);
         closeGame();
         return;
       }
@@ -657,6 +721,7 @@ function loop(now){
   gameLoopId = requestAnimationFrame(loop);
 }
 
+playerNameInput.addEventListener("input", updateUI);
 updateUI();
 </script>
 </body>
