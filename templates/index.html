@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RNG Space Shooter - Economy & Levels</title>
+<style>
+  *{box-sizing:border-box}
+  body{
+    margin:0; min-height:100vh; display:grid; place-items:center;
+    font-family:Arial,Helvetica,sans-serif; color:#fff;
+    background:
+      radial-gradient(circle at 20% 10%, rgba(168,85,247,.18), transparent 30%),
+      radial-gradient(circle at 80% 80%, rgba(239,68,68,.15), transparent 30%),
+      linear-gradient(135deg,#050816,#10162b 55%,#090b17);
+    padding:24px;
+  }
+  .app{width:min(900px,100%)}
+  h1{text-align:center;font-size:clamp(30px,5vw,52px);margin:0}
+  .sub{text-align:center;color:#94a3b8;margin:8px 0 16px}
+  
+  .top-bar{
+    display:flex; justify-content:space-between; align-items:center;
+    background:rgba(15,23,42,.8); border:1px solid rgba(255,255,255,.1);
+    padding:12px 20px; border-radius:18px; margin-bottom:16px;
+    backdrop-filter:blur(10px);
+  }
+  .badge-container{display:flex; gap:16px}
+  .badge{font-size:16px; font-weight:bold; display:flex; align-items:center; gap:6px}
+  .badge.coins{color:#facc15}
+  .badge.level{color:#38bdf8}
+
+  .card{
+    background:rgba(15,23,42,.78);
+    border:1px solid rgba(255,255,255,.1);
+    border-radius:26px;padding:26px;
+    box-shadow:0 30px 90px rgba(0,0,0,.4);
+    backdrop-filter:blur(12px);
+  }
+  .rng{
+    position:relative;
+    height:220px;
+    border-radius:22px;
+    display:flex;align-items:center;justify-content:center;
+    overflow:hidden;
+    background:linear-gradient(180deg,rgba(2,6,23,.8),rgba(15,23,42,.95));
+    border:1px solid rgba(255,255,255,.08);
+  }
+  .glow{
+    position:absolute;inset:20%;
+    border-radius:50%;
+    filter:blur(45px);
+    background:rgba(255,255,255,.05);
+    pointer-events:none;
+  }
+  .scan{
+    position:absolute;top:0;bottom:0;left:50%;width:3px;
+    transform:translateX(-50%);
+    background:linear-gradient(transparent,rgba(255,255,255,.9),transparent);
+    box-shadow:0 0 18px rgba(255,255,255,.55);
+    opacity:.55;
+    pointer-events:none;
+  }
+  .name{
+    position:relative;z-index:2;
+    font-size:clamp(40px,7vw,75px);
+    font-weight:1000;letter-spacing:1px;text-align:center;
+    transition:transform .12s,opacity .12s;
+    text-shadow:0 0 26px rgba(255,255,255,.14);
+    padding:20px;
+  }
+  .rolling .name{animation:pulse .11s infinite alternate}
+  @keyframes pulse{from{transform:scale(.98)}to{transform:scale(1.02)}}
+
+  .rarity{
+    position:relative;
+    text-align:center;
+    min-height:54px;
+    margin-top:16px;
+    font-size:24px;
+    font-weight:900;
+    cursor:pointer;
+  }
+  .rarity small{display:block;color:#64748b;font-size:12px;letter-spacing:2px;margin-bottom:4px}
+  
+  .tooltip{
+    visibility:hidden;
+    position:absolute;
+    bottom:110%;
+    left:50%;
+    transform:translateX(-50%);
+    background:rgba(2,6,23,.95);
+    border:1px solid rgba(255,255,255,.2);
+    color:#fff;
+    padding:10px 14px;
+    border-radius:12px;
+    font-size:13px;
+    font-weight:normal;
+    white-space:nowrap;
+    box-shadow:0 10px 25px rgba(0,0,0,.6);
+    z-index:10;
+    opacity:0;
+    transition:opacity .2s;
+    pointer-events:none;
+  }
+  .stat:hover .tooltip, .rarity:hover .tooltip{
+    visibility:visible;
+    opacity:1;
+  }
+
+  .common{color:#ffffff; text-shadow:0 0 12px rgba(255,255,255,.4)}
+  .rare{color:#60a5fa; text-shadow:0 0 20px rgba(96,165,250,.6)}
+  .epic{color:#a855f7; text-shadow:0 0 22px rgba(168,85,247,.65)}
+  .legendary{color:#f97316; text-shadow:0 0 24px rgba(249,115,22,.7)}
+  .mythic{color:#ef4444; text-shadow:0 0 28px rgba(239,68,68,.8)}
+
+  .btn-group{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px}
+  button{
+    padding:17px;border:0;border-radius:15px;
+    color:#fff;font-size:18px;font-weight:1000;cursor:pointer;
+    transition:transform .1s, opacity .2s;
+  }
+  button:active{transform:scale(0.98)}
+  #roll{
+    background:linear-gradient(135deg,#7c3aed,#2563eb);
+    box-shadow:0 10px 20px rgba(79,70,229,.3);
+  }
+  #play{
+    background:linear-gradient(135deg,#ef4444,#b91c1c);
+    box-shadow:0 10px 20px rgba(239,68,68,.3);
+  }
+  button:disabled{opacity:.4;cursor:not-allowed}
+  
+  .stats{
+    display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:18px
+  }
+  .stat{
+    position:relative;
+    background:rgba(2,6,23,.65);border:1px solid rgba(255,255,255,.07);
+    padding:10px 4px;border-radius:14px;text-align:center;font-size:13px;
+    cursor:pointer;
+  }
+  .stat b{display:block;font-size:18px;margin-top:3px}
+  
+  .history{margin-top:18px}
+  .history h3{margin:0 0 10px}
+  .history-list{display:grid;gap:8px;max-height:140px;overflow:auto}
+  .history-item{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:10px 12px;border-radius:11px;background:rgba(2,6,23,.5);
+    border:1px solid rgba(255,255,255,.05)
+  }
+  .tag{font-size:11px;font-weight:900;padding:5px 8px;border-radius:999px}
+  .tag.common{background:rgba(255,255,255,.15); color:#fff}
+  .tag.rare{background:rgba(96,165,250,.15); color:#60a5fa}
+  .tag.epic{background:rgba(168,85,247,.15); color:#a855f7}
+  .tag.legendary{background:rgba(249,115,22,.15); color:#f97316}
+  .tag.mythic{background:rgba(239,68,68,.15); color:#ef4444}
+
+  .game-modal{
+    display:none;position:fixed;inset:0;
+    background:rgba(2,6,23,.92);backdrop-filter:blur(10px);
+    z-index:100;place-items:center;padding:20px;
+  }
+  .game-modal.active{display:grid}
+  .game-container{
+    background:#0f172a;border:2px solid rgba(255,255,255,.1);
+    border-radius:24px;padding:20px;text-align:center;
+    max-width:440px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.6);
+  }
+  .game-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .player-info{font-size:18px;font-weight:bold}
+  .score-info{font-size:14px;color:#94a3b8}
+  canvas{
+    background:#020617;border-radius:12px;
+    border:1px solid rgba(255,255,255,.08);display:block;margin:0 auto;
+    touch-action:none;
+  }
+  .game-hint{font-size:12px;color:#64748b;margin-top:8px}
+  .close-btn{background:#e11d48;margin-top:14px;width:100%;padding:12px;font-size:16px}
+
+  @media(max-width:700px){
+    .stats{grid-template-columns:repeat(3,1fr)}
+    .btn-group{grid-template-columns:1fr}
+    .card{padding:16px}
+    .rng{height:180px}
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <h1>🎲 RNG DE APELIDOS</h1>
+  <p class="sub">Gaste pontos para rolar novos apelidos e enfrente pedras espaciais!</p>
+
+  <div class="top-bar">
+    <div class="badge-container">
+      <div class="badge coins">🪙 <span id="userCoins">100</span> Pontos</div>
+      <div class="badge level">⭐ Nível <span id="userLevel">1</span></div>
+    </div>
+    <div style="font-size: 12px; color:#94a3b8">XP: <span id="userXp">0</span>/100</div>
+  </div>
+
+  <div class="card">
+    <div class="rng" id="rngBox">
+      <div class="glow"></div>
+      <div class="scan"></div>
+      <div class="name" id="name">???</div>
+    </div>
+    <div class="rarity" id="rarity">
+      <small>RESULTADO</small>Pronto para rolar
+      <div class="tooltip" id="resTooltip">Custa 100 pontos para rolar!</div>
+    </div>
+
+    <div class="btn-group">
+      <button id="roll">🎲 ROLL (100 Pts)</button>
+      <button id="play" disabled>🚀 JOGAR SHOOTER</button>
+    </div>
+
+    <div class="stats">
+      <div class="stat" style="color:#ffffff">Comum<b>50%</b>
+        <div class="tooltip">🔫 Tiro Simples | ⚡ Cadência: 1x | ❤️ Vida: 3</div>
+      </div>
+      <div class="stat" style="color:#60a5fa">Raro<b>25%</b>
+        <div class="tooltip">🔫 Tiro Duplo | ⚡ Cadência: 1.3x | ❤️ Vida: 4</div>
+      </div>
+      <div class="stat" style="color:#a855f7">Épico<b>15%</b>
+        <div class="tooltip">🔫 Tiro Triplo | ⚡ Cadência: 1.7x | ❤️ Vida: 5</div>
+      </div>
+      <div class="stat" style="color:#f97316">Lendário<b>8%</b>
+        <div class="tooltip">🔫 Tiro Quádruplo + Escudo | ⚡ Cadência: 2.2x | ❤️ Vida: 7</div>
+      </div>
+      <div class="stat" style="color:#ef4444">Mítico<b>2%</b>
+        <div class="tooltip">🔫 Tiro Espalhado x5 + Super Escudo | ⚡ Cadência: 3.5x | ❤️ Vida: 10</div>
+      </div>
+    </div>
+
+    <div class="history">
+      <h3>📜 Histórico</h3>
+      <div class="history-list" id="history"></div>
+    </div>
+  </div>
+</div>
+
+<div class="game-modal" id="gameModal">
+  <div class="game-container">
+    <div class="game-header">
+      <div class="player-info" id="pInfo">Jogador</div>
+      <div class="score-info">🪙 <span id="gameCoins">0</span> | ❤️ <span id="hp">3</span></div>
+    </div>
+    <canvas id="shooterCanvas" width="360" height="420"></canvas>
+    <div class="game-hint">Mova com o mouse/toque. Destrua asteroides para ganhar pontos!</div>
+
+    <button class="close-btn" onclick="closeGame()">✖ Sair do Jogo</button>
+  </div>
+</div>
+
+<script>
+const data = [
+  {name:"nicolas", rarity:"Comum"},
+  {name:"henrico", rarity:"Comum"},
+  {name:"kenedy", rarity:"Comum"},
+
+  {name:"Jadrin", rarity:"Raro"},
+  {name:"bruno", rarity:"Raro"},
+
+  {name:"lipao", rarity:"Épico"},
+  {name:"pietro", rarity:"Épico"},
+
+  {name:"oswaldo", rarity:"Lendário"},
+  {name:"leonardo", rarity:"Lendário"},
+
+  {name:"RL", rarity:"Mítico"}
+];
+
+const rarityStats = {
+  "Comum":    { color: "#ffffff", shootDelay: 350, bullets: 1, hp: 3,  type: "Simples" },
+  "Raro":     { color: "#60a5fa", shootDelay: 260, bullets: 2, hp: 4,  type: "Duplo" },
+  "Épico":    { color: "#a855f7", shootDelay: 190, bullets: 3, hp: 5,  type: "Triplo" },
+  "Lendário": { color: "#f97316", shootDelay: 130, bullets: 4, hp: 7,  type: "Quádruplo" },
+  "Mítico":   { color: "#ef4444", shootDelay: 70,  bullets: 5, hp: 10, type: "Espalhado x5" }
+};
+
+let coins = 100;
+let level = 1;
+let xp = 0;
+const ROLL_COST = 100;
+
+const nameEl = document.getElementById("name");
+const rarityEl = document.getElementById("rarity");
+const rollBtn = document.getElementById("roll");
+const playBtn = document.getElementById("play");
+const rngBox = document.getElementById("rngBox");
+const historyEl = document.getElementById("history");
+
+const userCoinsEl = document.getElementById("userCoins");
+const userLevelEl = document.getElementById("userLevel");
+const userXpEl = document.getElementById("userXp");
+
+let rolling = false;
+let history = [];
+let currentResult = null;
+
+function updateUI(){
+  userCoinsEl.textContent = coins;
+  userLevelEl.textContent = level;
+  userXpEl.textContent = xp;
+  
+  if(!rolling){
+    rollBtn.disabled = coins < ROLL_COST;
+  }
+}
+
+function addXp(amount){
+  xp += amount;
+  const xpNeeded = level * 100;
+  if(xp >= xpNeeded){
+    xp -= xpNeeded;
+    level++;
+    alert(`🎉 PARABÉNS! Você subiu para o Nível ${level}!`);
+  }
+  updateUI();
+}
+
+function className(r){
+  if(r==="Comum") return "common";
+  if(r==="Raro") return "rare";
+  if(r==="Épico") return "epic";
+  if(r==="Lendário") return "legendary";
+  if(r==="Mítico") return "mythic";
+  return "common";
+}
+
+function rarityRoll(){
+  const n = Math.random() * 100;
+  if(n < 50) return "Comum";
+  if(n < 75) return "Raro";
+  if(n < 90) return "Épico";
+  if(n < 98) return "Lendário";
+  return "Mítico";
+}
+
+function pick(rarity){
+  const p = data.filter(x=>x.rarity===rarity);
+  return p[Math.floor(Math.random() * p.length)];
+}
+
+function randomAny(){ return data[Math.floor(Math.random() * data.length)]; }
+
+function addHistory(item){
+  history.unshift(item);
+  if(history.length > 10) history.pop();
+  historyEl.innerHTML = history.map(x=>`
+    <div class="history-item">
+      <strong>${x.name}</strong>
+      <span class="tag ${className(x.rarity)}">${x.rarity}</span>
+    </div>
+  `).join("");
+}
+
+async function roll(){
+  if(rolling || coins < ROLL_COST) return;
+  
+  coins -= ROLL_COST;
+  updateUI();
+
+  rolling = true; 
+  rollBtn.disabled = true;
+  playBtn.disabled = true;
+  rngBox.classList.add("rolling");
+  rarityEl.innerHTML = '<small>SORTEANDO...</small>???<div class="tooltip">Sorteando...</div>';
+  rarityEl.className = 'rarity';
+
+  const rarity = rarityRoll();
+  const result = pick(rarity);
+  currentResult = result;
+
+  const duration = 2500 + Math.random() * 800;
+  const start = performance.now();
+  let lastChange = 0;
+
+  function frame(now){
+    const elapsed = now - start;
+    const t = Math.min(1, elapsed / duration);
+    const delay = 35 + Math.pow(t, 3) * 180;
+    
+    if(now - lastChange >= delay){
+      const fake = randomAny();
+      nameEl.textContent = fake.name;
+      nameEl.className = "name";
+      lastChange = now;
+    }
+
+    if(t < 1){
+      requestAnimationFrame(frame);
+    }else{
+      let flashes = 0;
+      const finalizer = setInterval(() => {
+        flashes++;
+        if(flashes < 4){
+          nameEl.style.opacity = flashes % 2 ? 0.35 : 1;
+        }else{
+          clearInterval(finalizer);
+          const st = rarityStats[result.rarity];
+          nameEl.style.opacity = 1;
+          nameEl.textContent = result.name;
+          nameEl.className = `name ${className(result.rarity)}`;
+          
+          rarityEl.innerHTML = `
+            <small>VOCÊ CONSEGUIU</small>${result.rarity}
+            <div class="tooltip">🔫 Arma: ${st.type} | ❤️ Vida: ${st.hp}</div>
+          `;
+          rarityEl.className = `rarity ${className(result.rarity)}`;
+          
+          rngBox.classList.remove("rolling");
+          rolling = false;
+          updateUI();
+          playBtn.disabled = false;
+          addHistory(result);
+        }
+      }, 120);
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+rollBtn.addEventListener("click", roll);
+
+const modal = document.getElementById("gameModal");
+const canvas = document.getElementById("shooterCanvas");
+const ctx = canvas.getContext("2d");
+const pInfo = document.getElementById("pInfo");
+const gameCoinsEl = document.getElementById("gameCoins");
+const hpEl = document.getElementById("hp");
+
+let player = {x: 180, y: 360, size: 20};
+let bullets = [];
+let rocks = [];
+let particles = [];
+let sessionCoins = 0;
+let currentHp = 3;
+let gameLoopId = null;
+let lastShootTime = 0;
+let currentStats = null;
+
+playBtn.addEventListener("click", startGame);
+
+function startGame(){
+  if(!currentResult) return;
+  
+  modal.classList.add("active");
+  currentStats = rarityStats[currentResult.rarity];
+  
+  pInfo.textContent = currentResult.name;
+  pInfo.style.color = currentStats.color;
+  
+  sessionCoins = 0;
+  currentHp = currentStats.hp;
+  gameCoinsEl.textContent = sessionCoins;
+  hpEl.textContent = currentHp;
+  
+  player.x = canvas.width / 2;
+  player.y = canvas.height - 40;
+  
+  bullets = [];
+  rocks = [];
+  particles = [];
+  
+  canvas.addEventListener('mousemove', handleMove);
+  canvas.addEventListener('touchmove', handleTouch);
+
+  if(gameLoopId) cancelAnimationFrame(gameLoopId);
+  requestAnimationFrame(loop);
+}
+
+function closeGame(){
+  modal.classList.remove("active");
+  cancelAnimationFrame(gameLoopId);
+  canvas.removeEventListener('mousemove', handleMove);
+  canvas.removeEventListener('touchmove', handleTouch);
+  updateUI();
+}
+
+function handleMove(e){
+  const rect = canvas.getBoundingClientRect();
+  player.x = e.clientX - rect.left;
+}
+
+function handleTouch(e){
+  const rect = canvas.getBoundingClientRect();
+  if(e.touches[0]){
+    player.x = e.touches[0].clientX - rect.left;
+  }
+}
+
+function spawnRock(){
+  if(Math.random() < 0.035){
+    const isBig = Math.random() < 0.25;
+    const baseHp = isBig ? Math.floor(3 + level * 1.5) : Math.floor(1 + level * 0.8);
+    const size = isBig ? 24 + Math.random() * 8 : 12 + Math.random() * 8;
+
+    rocks.push({
+      x: Math.random() * (canvas.width - 40) + 20,
+      y: -30,
+      speed: 1.2 + Math.random() * 1.8,
+      size: size,
+      hp: baseHp,
+      maxHp: baseHp,
+      isBig: isBig
+    });
+  }
+}
+
+function shoot(now){
+  if(now - lastShootTime >= currentStats.shootDelay){
+    lastShootTime = now;
+    const bCount = currentStats.bullets;
+    
+    if(bCount === 1){
+      bullets.push({x: player.x, y: player.y - 15, vx: 0, vy: -7});
+    } else if(bCount === 2){
+      bullets.push({x: player.x - 8, y: player.y - 15, vx: 0, vy: -7});
+      bullets.push({x: player.x + 8, y: player.y - 15, vx: 0, vy: -7});
+    } else if(bCount === 3){
+      bullets.push({x: player.x - 12, y: player.y - 15, vx: -1.2, vy: -7});
+      bullets.push({x: player.x, y: player.y - 15, vx: 0, vy: -7});
+      bullets.push({x: player.x + 12, y: player.y - 15, vx: 1.2, vy: -7});
+    } else if(bCount === 4){
+      bullets.push({x: player.x - 15, y: player.y - 15, vx: -1.5, vy: -7});
+      bullets.push({x: player.x - 5, y: player.y - 15, vx: -0.5, vy: -7});
+      bullets.push({x: player.x + 5, y: player.y - 15, vx: 0.5, vy: -7});
+      bullets.push({x: player.x + 15, y: player.y - 15, vx: 1.5, vy: -7});
+    } else if(bCount === 5){
+      bullets.push({x: player.x, y: player.y - 15, vx: -3, vy: -6.5});
+      bullets.push({x: player.x, y: player.y - 15, vx: -1.5, vy: -7});
+      bullets.push({x: player.x, y: player.y - 15, vx: 0, vy: -7.5});
+      bullets.push({x: player.x, y: player.y - 15, vx: 1.5, vy: -7});
+      bullets.push({x: player.x, y: player.y - 15, vx: 3, vy: -6.5});
+    }
+  }
+}
+
+function createExplosion(x, y, color){
+  for(let i = 0; i < 12; i++){
+    particles.push({
+      x, y,
+      vx: (Math.random() - 0.5) * 6,
+      vy: (Math.random() - 0.5) * 6,
+      life: 1,
+      color: color || '#94a3b8'
+    });
+  }
+}
+
+function loop(now){
+  ctx.fillStyle = "#020617";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  shoot(now);
+  spawnRock();
+
+  ctx.fillStyle = currentStats.color;
+  ctx.shadowColor = currentStats.color;
+  ctx.shadowBlur = 8;
+  for(let i = bullets.length - 1; i >= 0; i--){
+    let b = bullets[i];
+    b.x += b.vx;
+    b.y += b.vy;
+    ctx.fillRect(b.x - 2, b.y - 6, 4, 10);
+    if(b.y < -10) bullets.splice(i, 1);
+  }
+
+  for(let i = rocks.length - 1; i >= 0; i--){
+    let r = rocks[i];
+    r.y += r.speed;
+
+    ctx.fillStyle = r.isBig ? "#64748b" : "#475569";
+    ctx.shadowColor = "#000";
+    ctx.shadowBlur = 4;
+    
+    ctx.beginPath();
+    ctx.arc(r.x, r.y, r.size, 0, Math.PI * 2);
+    ctx.fill();
+
+    if(r.maxHp > 1){
+      const barWidth = r.size * 1.5;
+      const hpPercent = r.hp / r.maxHp;
+      ctx.fillStyle = "rgba(0,0,0,0.5)";
+      ctx.fillRect(r.x - barWidth/2, r.y - r.size - 8, barWidth, 4);
+      ctx.fillStyle = "#ef4444";
+      ctx.fillRect(r.x - barWidth/2, r.y - r.size - 8, barWidth * hpPercent, 4);
+    }
+
+    for(let j = bullets.length - 1; j >= 0; j--){
+      let b = bullets[j];
+      let dist = Math.hypot(b.x - r.x, b.y - r.y);
+      if(dist < r.size){
+        r.hp--;
+        bullets.splice(j, 1);
+        createExplosion(b.x, b.y, "#cbd5e1");
+
+        if(r.hp <= 0){
+          createExplosion(r.x, r.y, "#64748b");
+          
+          const earnedCoins = r.isBig ? 25 : 10;
+          coins += earnedCoins;
+          sessionCoins += earnedCoins;
+          gameCoinsEl.textContent = sessionCoins;
+          
+          addXp(r.isBig ? 20 : 10);
+
+          rocks.splice(i, 1);
+        }
+        break;
+      }
+    }
+
+    let pDist = Math.hypot(player.x - r.x, player.y - r.y);
+    if(pDist < r.size + player.size){
+      createExplosion(r.x, r.y, "#f59e0b");
+      rocks.splice(i, 1);
+      currentHp--;
+      hpEl.textContent = currentHp;
+      if(currentHp <= 0){
+        alert(`Game Over! ${currentResult.name} coletou +${sessionCoins} Pontos nesta partida!`);
+        closeGame();
+        return;
+      }
+    }
+
+    if(r.y > canvas.height + 30) rocks.splice(i, 1);
+  }
+
+  for(let i = particles.length - 1; i >= 0; i--){
+    let p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life -= 0.05;
+    ctx.fillStyle = p.color;
+    ctx.globalAlpha = Math.max(0, p.life);
+    ctx.fillRect(p.x, p.y, 3, 3);
+    ctx.globalAlpha = 1;
+    if(p.life <= 0) particles.splice(i, 1);
+  }
+
+  ctx.fillStyle = currentStats.color;
+  ctx.shadowColor = currentStats.color;
+  ctx.shadowBlur = 12;
+  ctx.beginPath();
+  ctx.moveTo(player.x, player.y - player.size);
+  ctx.lineTo(player.x - player.size, player.y + player.size);
+  ctx.lineTo(player.x + player.size, player.y + player.size);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.shadowBlur = 0;
+  gameLoopId = requestAnimationFrame(loop);
+}
+
+updateUI();
+</script>
+</body>
+</html>
