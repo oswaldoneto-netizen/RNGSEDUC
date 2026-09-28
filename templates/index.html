@@ -257,7 +257,7 @@
         <div class="history-list" id="history"></div>
       </div>
       <div class="leaderboard">
-        <h3>🏆 Leaderboard</h3>
+        <h3>🏆 Leaderboard Online</h3>
         <div class="leaderboard-list" id="leaderboard"></div>
       </div>
     </div>
@@ -310,9 +310,12 @@ const rarityStats = {
   "Secreto":  { color: "#10b981", shootDelay: 40,  bullets: 5, hp: 15, type: "Laser Infinito Secreto" }
 };
 
-let coins = 100;
-let level = 1;
-let xp = 0;
+// Carregar progresso salvo no PC
+let coins = parseInt(localStorage.getItem("rng_coins")) || 100;
+let level = parseInt(localStorage.getItem("rng_level")) || 1;
+let xp = parseInt(localStorage.getItem("rng_xp")) || 0;
+let savedName = localStorage.getItem("rng_player_name") || "Player1";
+
 const ROLL_COST = 100;
 
 const nameEl = document.getElementById("name");
@@ -324,18 +327,53 @@ const historyEl = document.getElementById("history");
 const leaderboardEl = document.getElementById("leaderboard");
 const playerNameInput = document.getElementById("playerName");
 
+playerNameInput.value = savedName;
+
 const userCoinsEl = document.getElementById("userCoins");
 const userLevelEl = document.getElementById("userLevel");
 const userXpEl = document.getElementById("userXp");
 
 let rolling = false;
 let history = [];
-let leaderboard = [
-  {name: "RL", level: 12, coins: 2500},
-  {name: "Oswaldo", level: 8, coins: 1400},
-  {name: "Leonardo", level: 5, coins: 850}
-];
+let leaderboard = [];
 let currentResult = null;
+
+function saveProgress(){
+  localStorage.setItem("rng_coins", coins);
+  localStorage.setItem("rng_level", level);
+  localStorage.setItem("rng_xp", xp);
+  localStorage.setItem("rng_player_name", playerNameInput.value.trim() || "Player1");
+  sendScoreToServer();
+}
+
+async function fetchLeaderboard(){
+  try {
+    const res = await fetch('/api/leaderboard');
+    leaderboard = await res.json();
+    renderLeaderboard();
+  } catch(e){}
+}
+
+async function sendScoreToServer(){
+  const pName = playerNameInput.value.trim() || "Player1";
+  try {
+    await fetch('/api/leaderboard', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ name: pName, level: level, coins: coins })
+    });
+    fetchLeaderboard();
+  } catch(e){}
+}
+
+function renderLeaderboard(){
+  leaderboardEl.innerHTML = leaderboard.slice(0, 5).map((x, i) => `
+    <div class="leaderboard-item">
+      <span><b>#${i+1}</b> ${x.name}</span>
+      <span style="color:#38bdf8; font-weight:bold">Nvl ${x.level} (${x.coins} pts)</span>
+    </div>
+  `).join("");
+}
 
 function updateUI(){
   userCoinsEl.textContent = coins;
@@ -345,28 +383,6 @@ function updateUI(){
   if(!rolling){
     rollBtn.disabled = coins < ROLL_COST;
   }
-  updateLeaderboard();
-}
-
-function updateLeaderboard(){
-  const pName = playerNameInput.value.trim() || "Player1";
-  
-  let existing = leaderboard.find(p => p.name === pName);
-  if(existing){
-    existing.level = level;
-    existing.coins = coins;
-  } else {
-    leaderboard.push({name: pName, level: level, coins: coins});
-  }
-
-  leaderboard.sort((a,b) => b.level !== a.level ? b.level - a.level : b.coins - a.coins);
-
-  leaderboardEl.innerHTML = leaderboard.slice(0, 5).map((x, i) => `
-    <div class="leaderboard-item">
-      <span><b>#${i+1}</b> ${x.name}</span>
-      <span style="color:#38bdf8; font-weight:bold">Nvl ${x.level} (${x.coins} pts)</span>
-    </div>
-  `).join("");
 }
 
 function addXp(amount){
@@ -377,6 +393,7 @@ function addXp(amount){
     level++;
     alert(`🎉 PARABÉNS! Você subiu para o Nível ${level}!`);
   }
+  saveProgress();
   updateUI();
 }
 
@@ -425,6 +442,7 @@ async function roll(){
   if(rolling || coins < ROLL_COST) return;
   
   coins -= ROLL_COST;
+  saveProgress();
   updateUI();
 
   rolling = true; 
@@ -542,6 +560,7 @@ function closeGame(){
   cancelAnimationFrame(gameLoopId);
   canvas.removeEventListener('mousemove', handleMove);
   canvas.removeEventListener('touchmove', handleTouch);
+  saveProgress();
   updateUI();
 }
 
@@ -598,32 +617,4 @@ function shoot(now){
       bullets.push({x: player.x, y: player.y - 15, vx: -3, vy: -6.5});
       bullets.push({x: player.x, y: player.y - 15, vx: -1.5, vy: -7});
       bullets.push({x: player.x, y: player.y - 15, vx: 0, vy: -7.5});
-      bullets.push({x: player.x, y: player.y - 15, vx: 1.5, vy: -7});
-      bullets.push({x: player.x, y: player.y - 15, vx: 3, vy: -6.5});
-    }
-  }
-}
-
-function createExplosion(x, y, color){
-  for(let i = 0; i < 12; i++){
-    particles.push({
-      x, y,
-      vx: (Math.random() - 0.5) * 6,
-      vy: (Math.random() - 0.5) * 6,
-      life: 1,
-      color: color || '#94a3b8'
-    });
-  }
-}
-
-function loop(now){
-  ctx.fillStyle = "#020617";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  shoot(now);
-  spawnRock();
-
-  ctx.fillStyle = currentStats.color;
-  ctx.shadowColor = currentStats.color;
-  ctx.shadowBlur = 8;
-  for(let i = bullets.length
+      bullets.push({x: player.x, y: player.y - 15, vx:
