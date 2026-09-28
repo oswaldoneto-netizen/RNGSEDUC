@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RNG Space Shooter - Economy & Levels</title>
+<title>RNG Space Shooter - Special Effects</title>
 <style>
   *{box-sizing:border-box}
   body{
@@ -14,7 +14,27 @@
       radial-gradient(circle at 80% 80%, rgba(239,68,68,.15), transparent 30%),
       linear-gradient(135deg,#050816,#10162b 55%,#090b17);
     padding:24px;
+    overflow-x:hidden;
   }
+  
+  /* Efeito Screen Shake para o Secreto */
+  @keyframes shake {
+    0% { transform: translate(1px, 1px) rotate(0deg); }
+    10% { transform: translate(-1px, -2px) rotate(-1deg); }
+    20% { transform: translate(-3px, 0px) rotate(1deg); }
+    30% { transform: translate(3px, 2px) rotate(0deg); }
+    40% { transform: translate(1px, -1px) rotate(1deg); }
+    50% { transform: translate(-1px, 2px) rotate(-1deg); }
+    60% { transform: translate(-3px, 1px) rotate(0deg); }
+    70% { transform: translate(3px, 1px) rotate(-1deg); }
+    80% { transform: translate(-1px, -1px) rotate(1deg); }
+    90% { transform: translate(1px, 2px) rotate(0deg); }
+    100% { transform: translate(1px, -2px) rotate(-1deg); }
+  }
+  .shake-effect {
+    animation: shake 0.6s cubic-bezier(.36,.07,.19,.97) both;
+  }
+
   .app{width:min(900px,100%)}
   h1{text-align:center;font-size:clamp(30px,5vw,52px);margin:0}
   .sub{text-align:center;color:#94a3b8;margin:8px 0 16px}
@@ -25,10 +45,11 @@
     padding:12px 20px; border-radius:18px; margin-bottom:16px;
     backdrop-filter:blur(10px); flex-wrap:wrap; gap:10px;
   }
-  .badge-container{display:flex; gap:16px; align-items:center}
+  .badge-container{display:flex; gap:16px; align-items:center; flex-wrap:wrap}
   .badge{font-size:16px; font-weight:bold; display:flex; align-items:center; gap:6px}
   .badge.coins{color:#facc15}
   .badge.level{color:#38bdf8}
+  .badge.java{color:#f97316; background:rgba(249,115,22,0.15); padding:4px 10px; border-radius:10px; border:1px solid rgba(249,115,22,0.3)}
 
   .player-input-box{
     display:flex; align-items:center; gap:8px;
@@ -44,6 +65,7 @@
     border-radius:26px;padding:26px;
     box-shadow:0 30px 90px rgba(0,0,0,.4);
     backdrop-filter:blur(12px);
+    position:relative;
   }
   .rng{
     position:relative;
@@ -111,22 +133,36 @@
     transition:opacity .2s;
     pointer-events:none;
   }
-  .stat:hover .tooltip, .rarity:hover .tooltip{
+  .stat:hover .tooltip, .rarity:hover .tooltip, .badge.java:hover .tooltip{
     visibility:visible;
     opacity:1;
   }
 
+  /* Cores das Raridades */
   .common{color:#ffffff; text-shadow:0 0 12px rgba(255,255,255,.4)}
   .rare{color:#60a5fa; text-shadow:0 0 20px rgba(96,165,250,.6)}
   .epic{color:#a855f7; text-shadow:0 0 22px rgba(168,85,247,.65)}
   .legendary{color:#f97316; text-shadow:0 0 24px rgba(249,115,22,.7)}
   .mythic{color:#ef4444; text-shadow:0 0 28px rgba(239,68,68,.8)}
-  .secret{color:#10b981; text-shadow:0 0 30px rgba(16,185,129,1)}
+  
+  /* Cor Secreta RGB Animada */
+  @keyframes rgbGradient {
+    0% { color: #ff0000; text-shadow: 0 0 20px #ff0000; }
+    20% { color: #ff8800; text-shadow: 0 0 20px #ff8800; }
+    40% { color: #ffff00; text-shadow: 0 0 20px #ffff00; }
+    60% { color: #00ff00; text-shadow: 0 0 20px #00ff00; }
+    80% { color: #00ffff; text-shadow: 0 0 20px #00ffff; }
+    100% { color: #ff00ff; text-shadow: 0 0 20px #ff00ff; }
+  }
+  .secret{
+    animation: rgbGradient 1.5s linear infinite;
+    font-weight: 1000;
+  }
 
-  .btn-group{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px}
+  .btn-group{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:20px}
   button{
     padding:17px;border:0;border-radius:15px;
-    color:#fff;font-size:18px;font-weight:1000;cursor:pointer;
+    color:#fff;font-size:16px;font-weight:1000;cursor:pointer;
     transition:transform .1s, opacity .2s;
   }
   button:active{transform:scale(0.98)}
@@ -137,6 +173,10 @@
   #play{
     background:linear-gradient(135deg,#ef4444,#b91c1c);
     box-shadow:0 10px 20px rgba(239,68,68,.3);
+  }
+  #buyJava{
+    background:linear-gradient(135deg,#f97316,#c2410c);
+    box-shadow:0 10px 20px rgba(249,115,22,.3);
   }
   button:disabled{opacity:.4;cursor:not-allowed}
   
@@ -166,7 +206,18 @@
   .tag.epic{background:rgba(168,85,247,.15); color:#a855f7}
   .tag.legendary{background:rgba(249,115,22,.15); color:#f97316}
   .tag.mythic{background:rgba(239,68,68,.15); color:#ef4444}
-  .tag.secret{background:rgba(16,185,129,.2); color:#10b981}
+  .tag.secret{
+    animation: rgbGradient 1.5s linear infinite;
+    background: rgba(255,255,255,.1);
+  }
+
+  /* Canvas de Partículas para Mítico/Secreto */
+  #effectCanvas {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 99;
+  }
 
   .game-modal{
     display:none;position:fixed;inset:0;
@@ -201,9 +252,11 @@
 </head>
 <body>
 
+<canvas id="effectCanvas"></canvas>
+
 <div class="app">
   <h1>🎲 RNG DE APELIDOS</h1>
-  <p class="sub">Gaste pontos para rolar novos apelidos e enfrente pedras espaciais!</p>
+  <p class="sub">Gaste pontos para rolar apelidos, tome seu Java e enfrente asteroides!</p>
 
   <div class="top-bar">
     <div class="player-input-box">
@@ -212,12 +265,16 @@
     </div>
     <div class="badge-container">
       <div class="badge coins">🪙 <span id="userCoins">100</span> Pontos</div>
+      <div class="badge java" style="position:relative">
+        ☕ <span id="userJava">3</span> Java
+        <div class="tooltip">Consumido ao iniciar partidas do Shooter!</div>
+      </div>
       <div class="badge level">⭐ Nível <span id="userLevel">1</span></div>
     </div>
     <div style="font-size: 12px; color:#94a3b8">XP: <span id="userXp">0</span>/100</div>
   </div>
 
-  <div class="card">
+  <div class="card" id="mainCard">
     <div class="rng" id="rngBox">
       <div class="glow"></div>
       <div class="scan"></div>
@@ -225,12 +282,13 @@
     </div>
     <div class="rarity" id="rarity">
       <small>RESULTADO</small>Pronto para rolar
-      <div class="tooltip" id="resTooltip">Custa 100 pontos para rolar!</div>
+      <div class="tooltip" id="resTooltip">Custa 100 pontos para rolar! (Ganha +1 Java ☕)</div>
     </div>
 
     <div class="btn-group">
       <button id="roll">🎲 ROLL (100 Pts)</button>
-      <button id="play" disabled>🚀 JOGAR SHOOTER</button>
+      <button id="play" disabled>🚀 JOGAR (1 Java ☕)</button>
+      <button id="buyJava">☕ COMPRAR JAVA (50 Pts)</button>
     </div>
 
     <div class="stats">
@@ -243,7 +301,7 @@
       <div class="stat" style="color:#a855f7">Épico<b>15%</b>
         <div class="tooltip">🔫 Tiro Triplo | ⚡ Cadência: 1.7x | ❤️ Vida: 5</div>
       </div>
-      <div class="stat" style="color:#f97316">Lendário<b>5%</b>
+      <div class="stat" style="color:#f97316">Lendário<b>8.5%</b>
         <div class="tooltip">🔫 Tiro Quádruplo + Escudo | ⚡ Cadência: 2.2x | ❤️ Vida: 7</div>
       </div>
       <div class="stat" style="color:#ef4444">Mítico<b>1%</b>
@@ -286,6 +344,7 @@ const data = [
   {name:"Bruno", rarity:"Raro"},
   {name:"Presidente", rarity:"Raro"},
   {name:"Wlissys", rarity:"Raro"},
+  {name:"Bagre", rarity:"Raro"},
 
   {name:"Jadrian", rarity:"Épico"},
   {name:"Guilherme", rarity:"Épico"},
@@ -294,9 +353,11 @@ const data = [
   {name:"Lipão", rarity:"Lendário"},
   {name:"Leonardo", rarity:"Lendário"},
   {name:"Oswaldo", rarity:"Lendário"},
+  {name:"João", rarity:"Lendário"},
 
   {name:"RL", rarity:"Mítico"},
   {name:"Matheuzinho", rarity:"Mítico"},
+  {name:"Fefa", rarity:"Mítico"},
 
   {name:"POLO", rarity:"Secreto"}
 ];
@@ -307,24 +368,29 @@ const rarityStats = {
   "Épico":    { color: "#a855f7", shootDelay: 190, bullets: 3, hp: 5,  type: "Triplo" },
   "Lendário": { color: "#f97316", shootDelay: 130, bullets: 4, hp: 7,  type: "Quádruplo" },
   "Mítico":   { color: "#ef4444", shootDelay: 70,  bullets: 5, hp: 10, type: "Espalhado x5" },
-  "Secreto":  { color: "#10b981", shootDelay: 40,  bullets: 5, hp: 15, type: "Laser Infinito Secreto" }
+  "Secreto":  { color: "#00ffcc", shootDelay: 35,  bullets: 5, hp: 15, type: "Laser RGB Supremo" }
 };
 
 let coins = 100;
+let javaCups = 3;
 let level = 1;
 let xp = 0;
 const ROLL_COST = 100;
+const JAVA_COST = 50;
 
 const nameEl = document.getElementById("name");
 const rarityEl = document.getElementById("rarity");
 const rollBtn = document.getElementById("roll");
 const playBtn = document.getElementById("play");
+const buyJavaBtn = document.getElementById("buyJava");
 const rngBox = document.getElementById("rngBox");
+const mainCard = document.getElementById("mainCard");
 const historyEl = document.getElementById("history");
 const leaderboardEl = document.getElementById("leaderboard");
 const playerNameInput = document.getElementById("playerName");
 
 const userCoinsEl = document.getElementById("userCoins");
+const userJavaEl = document.getElementById("userJava");
 const userLevelEl = document.getElementById("userLevel");
 const userXpEl = document.getElementById("userXp");
 
@@ -337,13 +403,74 @@ let leaderboard = [
 ];
 let currentResult = null;
 
+// Canvas de Partículas para Mítico e Secreto
+const fxCanvas = document.getElementById("effectCanvas");
+const fxCtx = fxCanvas.getContext("2d");
+let fxParticles = [];
+
+function resizeFxCanvas(){
+  fxCanvas.width = window.innerWidth;
+  fxCanvas.height = window.innerHeight;
+}
+window.addEventListener("resize", resizeFxCanvas);
+resizeFxCanvas();
+
+function triggerFx(type){
+  const cx = window.innerWidth / 2;
+  const cy = window.innerHeight / 2;
+  const count = type === "Secreto" ? 140 : 70;
+  
+  if(type === "Secreto"){
+    document.body.classList.add("shake-effect");
+    setTimeout(() => document.body.classList.remove("shake-effect"), 700);
+  }
+
+  for(let i=0; i<count; i++){
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 4 + Math.random() * (type === "Secreto" ? 15 : 8);
+    fxParticles.push({
+      x: cx, y: cy,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      size: 4 + Math.random() * 6,
+      life: 1,
+      decay: 0.015 + Math.random() * 0.02,
+      color: type === "Secreto" ? `hsl(${Math.random()*360}, 100%, 60%)` : '#ef4444'
+    });
+  }
+}
+
+function renderFx(){
+  fxCtx.clearRect(0,0,fxCanvas.width, fxCanvas.height);
+  for(let i = fxParticles.length - 1; i >= 0; i--){
+    let p = fxParticles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life -= p.decay;
+    
+    fxCtx.fillStyle = p.color;
+    fxCtx.globalAlpha = Math.max(0, p.life);
+    fxCtx.beginPath();
+    fxCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    fxCtx.fill();
+    fxCtx.globalAlpha = 1;
+
+    if(p.life <= 0) fxParticles.splice(i, 1);
+  }
+  requestAnimationFrame(renderFx);
+}
+renderFx();
+
 function updateUI(){
   userCoinsEl.textContent = coins;
+  userJavaEl.textContent = javaCups;
   userLevelEl.textContent = level;
   userXpEl.textContent = xp;
   
   if(!rolling){
     rollBtn.disabled = coins < ROLL_COST;
+    playBtn.disabled = !currentResult || javaCups < 1;
+    buyJavaBtn.disabled = coins < JAVA_COST;
   }
   updateLeaderboard();
 }
@@ -392,12 +519,12 @@ function className(r){
 
 function rarityRoll(){
   const n = Math.random() * 100;
-  if(n < 0.01) return "Secreto";
-  if(n < 50.01) return "Comum";
-  if(n < 75.01) return "Raro";
-  if(n < 90.01) return "Épico";
-  if(n < 95.01) return "Lendário";
-  return "Mítico";
+  if(n < 0.5) return "Secreto";  // 0.5% de chance
+  if(n < 1.5) return "Mítico";   // 1.0% de chance (0.5 a 1.5)
+  if(n < 10.0) return "Lendário"; // 8.5% de chance (1.5 a 10.0)
+  if(n < 25.0) return "Épico";    // 15.0% de chance (10.0 a 25.0)
+  if(n < 50.0) return "Raro";     // 25.0% de chance (25.0 a 50.0)
+  return "Comum";                 // 50.0% de chance (50.0 a 100)
 }
 
 function pick(rarity){
@@ -425,11 +552,13 @@ async function roll(){
   if(rolling || coins < ROLL_COST) return;
   
   coins -= ROLL_COST;
+  javaCups += 1;
   updateUI();
 
   rolling = true; 
   rollBtn.disabled = true;
   playBtn.disabled = true;
+  buyJavaBtn.disabled = true;
   rngBox.classList.add("rolling");
   rarityEl.innerHTML = '<small>SORTEANDO...</small>???<div class="tooltip">Sorteando...</div>';
   rarityEl.className = 'rarity';
@@ -470,259 +599,7 @@ async function roll(){
           nameEl.className = `name ${className(result.rarity)}`;
           
           rarityEl.innerHTML = `
-            <small>VOCÊ CONSEGUIU</small>${result.rarity}
+            <small>VOCÊ CONSEGUIU (+1 JAVA ☕)</small>${result.rarity}
             <div class="tooltip">🔫 Arma: ${st.type} | ❤️ Vida: ${st.hp}</div>
           `;
-          rarityEl.className = `rarity ${className(result.rarity)}`;
-          
-          rngBox.classList.remove("rolling");
-          rolling = false;
-          updateUI();
-          playBtn.disabled = false;
-          addHistory(result);
-        }
-      }, 120);
-    }
-  }
-  requestAnimationFrame(frame);
-}
-
-rollBtn.addEventListener("click", roll);
-
-const modal = document.getElementById("gameModal");
-const canvas = document.getElementById("shooterCanvas");
-const ctx = canvas.getContext("2d");
-const pInfo = document.getElementById("pInfo");
-const gameCoinsEl = document.getElementById("gameCoins");
-const hpEl = document.getElementById("hp");
-
-let player = {x: 180, y: 360, size: 20};
-let bullets = [];
-let rocks = [];
-let particles = [];
-let sessionCoins = 0;
-let currentHp = 3;
-let gameLoopId = null;
-let lastShootTime = 0;
-let currentStats = null;
-
-playBtn.addEventListener("click", startGame);
-
-function startGame(){
-  if(!currentResult) return;
-  
-  modal.classList.add("active");
-  currentStats = rarityStats[currentResult.rarity];
-  
-  const pName = playerNameInput.value.trim() || "Player";
-  pInfo.textContent = `${pName} (${currentResult.name})`;
-  pInfo.style.color = currentStats.color;
-  
-  sessionCoins = 0;
-  currentHp = currentStats.hp;
-  gameCoinsEl.textContent = sessionCoins;
-  hpEl.textContent = currentHp;
-  
-  player.x = canvas.width / 2;
-  player.y = canvas.height - 40;
-  
-  bullets = [];
-  rocks = [];
-  particles = [];
-  
-  canvas.addEventListener('mousemove', handleMove);
-  canvas.addEventListener('touchmove', handleTouch);
-
-  if(gameLoopId) cancelAnimationFrame(gameLoopId);
-  requestAnimationFrame(loop);
-}
-
-function closeGame(){
-  modal.classList.remove("active");
-  cancelAnimationFrame(gameLoopId);
-  canvas.removeEventListener('mousemove', handleMove);
-  canvas.removeEventListener('touchmove', handleTouch);
-  updateUI();
-}
-
-function handleMove(e){
-  const rect = canvas.getBoundingClientRect();
-  player.x = e.clientX - rect.left;
-}
-
-function handleTouch(e){
-  const rect = canvas.getBoundingClientRect();
-  if(e.touches[0]){
-    player.x = e.touches[0].clientX - rect.left;
-  }
-}
-
-function spawnRock(){
-  if(Math.random() < 0.035){
-    const isBig = Math.random() < 0.25;
-    const baseHp = isBig ? Math.floor(3 + level * 1.5) : Math.floor(1 + level * 0.8);
-    const size = isBig ? 24 + Math.random() * 8 : 12 + Math.random() * 8;
-
-    rocks.push({
-      x: Math.random() * (canvas.width - 40) + 20,
-      y: -30,
-      speed: 1.2 + Math.random() * 1.8,
-      size: size,
-      hp: baseHp,
-      maxHp: baseHp,
-      isBig: isBig
-    });
-  }
-}
-
-function shoot(now){
-  if(now - lastShootTime >= currentStats.shootDelay){
-    lastShootTime = now;
-    const bCount = currentStats.bullets;
-    
-    if(bCount === 1){
-      bullets.push({x: player.x, y: player.y - 15, vx: 0, vy: -7});
-    } else if(bCount === 2){
-      bullets.push({x: player.x - 8, y: player.y - 15, vx: 0, vy: -7});
-      bullets.push({x: player.x + 8, y: player.y - 15, vx: 0, vy: -7});
-    } else if(bCount === 3){
-      bullets.push({x: player.x - 12, y: player.y - 15, vx: -1.2, vy: -7});
-      bullets.push({x: player.x, y: player.y - 15, vx: 0, vy: -7});
-      bullets.push({x: player.x + 12, y: player.y - 15, vx: 1.2, vy: -7});
-    } else if(bCount === 4){
-      bullets.push({x: player.x - 15, y: player.y - 15, vx: -1.5, vy: -7});
-      bullets.push({x: player.x - 5, y: player.y - 15, vx: -0.5, vy: -7});
-      bullets.push({x: player.x + 5, y: player.y - 15, vx: 0.5, vy: -7});
-      bullets.push({x: player.x + 15, y: player.y - 15, vx: 1.5, vy: -7});
-    } else if(bCount === 5){
-      bullets.push({x: player.x, y: player.y - 15, vx: -3, vy: -6.5});
-      bullets.push({x: player.x, y: player.y - 15, vx: -1.5, vy: -7});
-      bullets.push({x: player.x, y: player.y - 15, vx: 0, vy: -7.5});
-      bullets.push({x: player.x, y: player.y - 15, vx: 1.5, vy: -7});
-      bullets.push({x: player.x, y: player.y - 15, vx: 3, vy: -6.5});
-    }
-  }
-}
-
-function createExplosion(x, y, color){
-  for(let i = 0; i < 12; i++){
-    particles.push({
-      x, y,
-      vx: (Math.random() - 0.5) * 6,
-      vy: (Math.random() - 0.5) * 6,
-      life: 1,
-      color: color || '#94a3b8'
-    });
-  }
-}
-
-function loop(now){
-  ctx.fillStyle = "#020617";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  shoot(now);
-  spawnRock();
-
-  ctx.fillStyle = currentStats.color;
-  ctx.shadowColor = currentStats.color;
-  ctx.shadowBlur = 8;
-  for(let i = bullets.length - 1; i >= 0; i--){
-    let b = bullets[i];
-    b.x += b.vx;
-    b.y += b.vy;
-    ctx.fillRect(b.x - 2, b.y - 6, 4, 10);
-    if(b.y < -10) bullets.splice(i, 1);
-  }
-
-  for(let i = rocks.length - 1; i >= 0; i--){
-    let r = rocks[i];
-    r.y += r.speed;
-
-    ctx.fillStyle = r.isBig ? "#64748b" : "#475569";
-    ctx.shadowColor = "#000";
-    ctx.shadowBlur = 4;
-    
-    ctx.beginPath();
-    ctx.arc(r.x, r.y, r.size, 0, Math.PI * 2);
-    ctx.fill();
-
-    if(r.maxHp > 1){
-      const barWidth = r.size * 1.5;
-      const hpPercent = r.hp / r.maxHp;
-      ctx.fillStyle = "rgba(0,0,0,0.5)";
-      ctx.fillRect(r.x - barWidth/2, r.y - r.size - 8, barWidth, 4);
-      ctx.fillStyle = "#ef4444";
-      ctx.fillRect(r.x - barWidth/2, r.y - r.size - 8, barWidth * hpPercent, 4);
-    }
-
-    for(let j = bullets.length - 1; j >= 0; j--){
-      let b = bullets[j];
-      let dist = Math.hypot(b.x - r.x, b.y - r.y);
-      if(dist < r.size){
-        r.hp--;
-        bullets.splice(j, 1);
-        createExplosion(b.x, b.y, "#cbd5e1");
-
-        if(r.hp <= 0){
-          createExplosion(r.x, r.y, "#64748b");
-          
-          const earnedCoins = r.isBig ? 25 : 10;
-          coins += earnedCoins;
-          sessionCoins += earnedCoins;
-          gameCoinsEl.textContent = sessionCoins;
-          
-          addXp(r.isBig ? 20 : 10);
-
-          rocks.splice(i, 1);
-        }
-        break;
-      }
-    }
-
-    let pDist = Math.hypot(player.x - r.x, player.y - r.y);
-    if(pDist < r.size + player.size){
-      createExplosion(r.x, r.y, "#f59e0b");
-      rocks.splice(i, 1);
-      currentHp--;
-      hpEl.textContent = currentHp;
-      if(currentHp <= 0){
-        alert(`Game Over! Coletou +${sessionCoins} Pontos nesta partida!`);
-        closeGame();
-        return;
-      }
-    }
-
-    if(r.y > canvas.height + 30) rocks.splice(i, 1);
-  }
-
-  for(let i = particles.length - 1; i >= 0; i--){
-    let p = particles[i];
-    p.x += p.vx;
-    p.y += p.vy;
-    p.life -= 0.05;
-    ctx.fillStyle = p.color;
-    ctx.globalAlpha = Math.max(0, p.life);
-    ctx.fillRect(p.x, p.y, 3, 3);
-    ctx.globalAlpha = 1;
-    if(p.life <= 0) particles.splice(i, 1);
-  }
-
-  ctx.fillStyle = currentStats.color;
-  ctx.shadowColor = currentStats.color;
-  ctx.shadowBlur = 12;
-  ctx.beginPath();
-  ctx.moveTo(player.x, player.y - player.size);
-  ctx.lineTo(player.x - player.size, player.y + player.size);
-  ctx.lineTo(player.x + player.size, player.y + player.size);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.shadowBlur = 0;
-  gameLoopId = requestAnimationFrame(loop);
-}
-
-playerNameInput.addEventListener("input", updateUI);
-updateUI();
-</script>
-</body>
-</html>
+          rarityE
